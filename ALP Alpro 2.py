@@ -1,5 +1,12 @@
 # Simple Task Management App in Python
 
+from datetime import datetime
+
+# Bold text 
+class TextStyle:
+    BOLD = '\033[1m'
+    END = '\033[0m'
+
 #Character stats
 character_stats = {'poin': 0, 'level': 1, 'nyawa': 3}
 
@@ -10,8 +17,28 @@ users = {}
 tasks = []
 
 # Function to display the welcome message
-def welcome_text():
-    print("Selamat datang di aplikasi kami!")
+def welcome_questlist():
+    welcome_text = """
+=========================================================
+  Selamat Datang di Aplikasi QuestList! 🚀🔍
+=========================================================
+
+QuestList bukan hanya Task Manager biasa, ini adalah
+simulasi kehidupan nyata versi digitalmu sendiri..
+
+Dalam dunia QuestList, setiap pencapaian adalah kemenangan,
+dan setiap tugas adalah tantangan yang menanti untuk
+dijelajahi. Kamu bukan sekadar menyelesaikan tugas,
+tapi meraih prestasi dalam sebuah perjalanan seru.
+
+Mulailah dengan menetapkan quest, selesaikan tugas,
+dan raih reward yang menantimu. Tantang dirimu sendiri
+dan tingkatkan level karaktermu!
+
+Selamat berpetualang di dunia QuestList! 🌟
+=========================================================
+"""
+    print(welcome_text)
 
 # Function for user login
 def login():
@@ -19,7 +46,7 @@ def login():
     password = input("Masukkan password anda: ")
 
     if username in users and users[username]['password'] == password:
-        print("Login berhasil!")
+        print("\nLogin berhasil!")
         return True
     else:
         print("Anda belum registrasi, harap registrasi terlebih dahulu.")
@@ -42,12 +69,15 @@ def register():
 # Function to display the home page
 def home_page():
     print("\nHome Page")
-    print(f"Statistik Karakter: Poin - {character_stats['poin']} , Level - {character_stats['level']}, Nyawa - {character_stats['nyawa']}")
+    print(f"{TextStyle.BOLD}Statistik Karakter: Poin - {character_stats['poin']} , Level - {character_stats['level']}, Nyawa - {character_stats['nyawa']}{TextStyle.END}")
 
-    if tasks:
-        print("\nDaftar Tugas:")
-        for i, task in enumerate(tasks, 1):
-            print(f"{i}. {task['name']} - Deadline: {task['deadline']}, Difficulty: {task['difficulty']}, Points: {task['points']}")
+    # Menampilkan daftar tugas yang belum selesai
+    incomplete_tasks = [task for task in tasks if task['status'] == 'belum selesai']
+
+    if incomplete_tasks:
+        print("\nDaftar Tugas Belum Selesai:")
+        for i, task in enumerate(incomplete_tasks, 1):
+            print(f"{i}. {task['name']} - Deadline: {task['deadline']}, Difficulty: {difficulty_to_string(task['difficulty'])}, Poin: {task['points']}")
     else:
         print("\nBelum ada tugas.")
 
@@ -60,29 +90,66 @@ def home_page():
 # Function to add a task
 def add_task():
     name = input("Masukkan nama tugas: ")
-    deadline = input("Masukkan deadline tugas (Tanggal/Bulan/Tahun): ")
-    difficulty = input("Masukkan tingkat kesulitan tugas (Mudah/Sedang/Sulit): ")
+
+    while True:
+        try:
+            deadline_str = input("Masukkan deadline tugas (Tanggal-Bulan-Tahun): ")
+            deadline = datetime.strptime(deadline_str, "%d-%m-%Y")
+            break
+        except ValueError:
+            print("Format tanggal tidak valid! Coba lagi.")
+    
+    print("Pilih tingkat kesulitan:")
+    print("1. Mudah")
+    print("2. Sedang")
+    print("3. Sulit")
+
+    while True:
+        try:
+            difficulty= int(input("Masukkan nomor tingkat kesulitan: "))
+            if 1 <= difficulty <= 3:
+                break
+            else:
+                print("Pilihan tidak valid! Harap masukkan angka antara 1 dan 3.")
+        except ValueError:
+            print("Masukkan angka yang valid.")
+    
+    status = 'belum selesai'
+
+    points = calculate_points(difficulty)
 
     task = {
         'name': name,
         'deadline': deadline,
         'difficulty': difficulty,
-        'points': calculate_points(difficulty)
+        'points': points,
+        'status': status
     }
 
     tasks.append(task)
-    print("Tugas berhasil ditambahkan!")
+    print("\nTugas berhasil ditambahkan!")
 
 # Function to calculate points based on task difficulty
 def calculate_points(difficulty):
-    if difficulty.lower() == 'mudah':
+    if difficulty == 1:
         return 1
-    elif difficulty.lower() == 'sedang':
+    elif difficulty == 2:
         return 3
-    elif difficulty.lower() == 'sulit':
+    elif difficulty == 3:
         return 5
     else:
         return 0
+
+# Mengubah difficulty ke tipe data string
+def difficulty_to_string(difficulty):
+    if difficulty == 1:
+        return "Mudah"
+    elif difficulty == 2:
+        return "Sedang"
+    elif difficulty == 3:
+        return "Sulit"
+    else:
+        return "Tidak valid"
 
 # Function to delete a task
 def delete_task():
@@ -100,20 +167,33 @@ def delete_task():
 
 # Function to complete task
 def complete_task():
-    if tasks:
-        completed_task = tasks.pop(0)
-        earned_points = completed_task['points']
+    incomplete_tasks = [task for task in tasks if task['status'] == 'belum selesai']
 
+    if incomplete_tasks:
+        print("Daftar Tugas Belum Selesai:")
+        for i, task in enumerate(incomplete_tasks):
+            print(f"{i+1}. {task['name']} - Deadline: {task['deadline']}, Difficulty: {difficulty_to_string(task['difficulty'])}, Poin: {task['points']}")
+
+        # Meminta pengguna memilih nomor tugas yang ingin diselesaikan
+        while True:
+            try:
+                choice = int(input("Pilih nomor tugas yang ingin diselesaikan: "))
+                selected_task = incomplete_tasks[choice-1]
+                break
+            except (ValueError, IndexError):
+                print("Masukkan nomor tugas yang valid.")
+        # Menyelesaikan tugas yang dipilih
+        earned_points = selected_task['difficulty']
         character_stats['poin'] += earned_points
-        print(f"Tugas '{completed_task['name']}' selesai! Anda mendapatkan {completed_task['points']} poin.")
+        selected_task['status'] = 'selesai'  # Tandai tugas sebagai selesai
+        print(f"\nTugas '{selected_task['name']}' selesai! Anda mendapatkan {earned_points} poin.")
         print(f"Stats Karakter Terupdate: Poin - {character_stats['poin']}")
     else:
         print("Belum ada tugas untuk diselesaikan.")
 
-
 # Main program loop
 while True:
-    welcome_text()
+    welcome_questlist()
 
     print("1. Login")
     print("2. Registrasi")
@@ -139,7 +219,7 @@ while True:
                 elif choice.lower() == 'exit':
                     break
                 else:
-                    print("Pilihan tidak valid, coba pilihan yang tertera.")
+                    print("Pilihan tidak valid! Coba pilihan yang tertera.")
 
     elif option == '2':
         register()
@@ -149,4 +229,4 @@ while True:
         break
 
     else:
-        print("Pilihan tidak valid, coba pilihan yang tertera.")
+        print("Pilihan tidak valid! Coba pilihan yang tertera.")
